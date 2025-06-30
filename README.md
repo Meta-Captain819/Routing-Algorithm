@@ -149,7 +149,7 @@ Follow these steps to set up and run the project on your local machine:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YourUsername/routing-sim.git
+git clone https://github.com/Meta-Captain819/Routing-Algorithm.git
 cd routing-sim
 ```
 

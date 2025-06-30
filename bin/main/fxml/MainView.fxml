@@ -34,7 +34,7 @@
                          toggleGroup="$metricGroup"/>
 
             <Button fx:id="selectRouteBtn" text="Select Route"/>
-            <Button fx:id="runBtn"         text="Run AODV"/>
+            <Button fx:id="runBtn"         text="Run Algorithm"/>
             <Button fx:id="clearPathBtn"   text="Clear Path"/>
 
             <Separator/>
