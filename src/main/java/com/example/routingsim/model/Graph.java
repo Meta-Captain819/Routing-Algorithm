@@ -40,7 +40,7 @@ public class Graph {
             return;          // nothing else to add
         }
 
-        // ── 2. otherwise create new edges  ────────────────────────────
+        // ── 2. otherwise create new edges  ─────────────────────────
         Edge e = new Edge(f, t, w);
         adj.get(f).add(e);
         adj.get(t).add(new Edge(t, f, w)); // undirected

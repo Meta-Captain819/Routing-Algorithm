@@ -63,7 +63,7 @@ public class MainController {
     // helpers
     private final List<Node> edgeCandidates = new ArrayList<>();
 
-    // ── init ────────────────────────────────────────────────────────────────────
+    // ── init ────────────────────────────────────────────────────────────────
     @FXML private void initialize() {
         setupTable();
 
