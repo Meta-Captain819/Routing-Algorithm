@@ -147,7 +147,7 @@ public class Graph {
     }
 
     /**
-     * Uses Dijkstra’s algorithm to find the lowest-weight path
+     * Uses algorithm to find the lowest-weight path
      * from the source node to the destination node.
      * Returns null if no path exists.
      */
