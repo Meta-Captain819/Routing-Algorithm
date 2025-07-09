@@ -2,28 +2,33 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<!-- Root layout of the application UI, managed by MainController -->
 <BorderPane fx:controller="com.example.routingsim.controller.MainController"
             xmlns:fx="http://javafx.com/fxml"
             prefWidth="900" prefHeight="600">
 
+    <!-- Main area where nodes and edges are displayed -->
     <center>
         <Pane fx:id="graphPane" style="-fx-background-color: #1e1e1e;"/>
     </center>
 
+    <!-- Right sidebar with all controls -->
     <right>
         <VBox spacing="8" style="-fx-padding: 10;">
 
-            <!-- off-scene definition of the ToggleGroup -->
+            <!-- Define the toggle group used by radio buttons -->
             <fx:define>
                 <ToggleGroup fx:id="metricGroup"/>
             </fx:define>
 
+            <!-- Section title -->
             <Label text="Controls" style="-fx-font-weight: bold;"/>
 
+            <!-- Buttons to add and remove nodes -->
             <Button fx:id="addNodeBtn" text="Add Node"/>
             <Button fx:id="removeNodeBtn" text="Remove Node"/>
 
-
+            <!-- Choose which routing metric to use -->
             <Label text="Routing Metric:" style="-fx-font-weight: bold;"/>
             <RadioButton fx:id="hopRadio"
                          text="Hop Count (AODV)"
@@ -33,12 +38,14 @@
                          text="Weighted Path"
                          toggleGroup="$metricGroup"/>
 
+            <!-- Buttons to simulate the route and clear it -->
             <Button fx:id="selectRouteBtn" text="Select Route"/>
             <Button fx:id="runBtn"         text="Run Algorithm"/>
             <Button fx:id="clearPathBtn"   text="Clear Path"/>
 
             <Separator/>
 
+            <!-- Log section to display simulation events -->
             <Label text="Simulation log:"/>
             <TableView fx:id="logTable" prefHeight="260">
                 <columns>

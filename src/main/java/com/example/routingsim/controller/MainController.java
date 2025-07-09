@@ -35,58 +35,64 @@ import javafx.util.Duration;
 
 public class MainController {
 
-    // ── FXML refs ───────────────────────────────────────────────────────────────
+    // These are all UI elements referenced from the FXML layout
     @FXML private Pane graphPane;
-    @FXML private Button addNodeBtn, selectRouteBtn, runBtn,
-                         clearPathBtn, removeNodeBtn;
+    @FXML private Button addNodeBtn, selectRouteBtn, runBtn, clearPathBtn, removeNodeBtn;
     @FXML private TableView<LogEntry> logTable;
     @FXML private TableColumn<LogEntry,String> timeCol, eventCol, detailCol;
     @FXML private RadioButton hopRadio, weightRadio;
 
-    // ── data model / visual maps ────────────────────────────────────────────────
+    // The actual graph data structure handling the logic behind the UI
     private final Graph graph = new Graph();
     private int nodeCounter = 0;
 
+    // UI tracking maps for nodes and edges
     private final Map<Node, StackPane> nodeVisual  = new HashMap<>();
     private final Map<Set<Node>, Line>  edgeLineMap  = new HashMap<>();
     private final Map<Set<Node>, Label> edgeLabelMap = new HashMap<>();
 
+    // These are for animating routes and simulating packet travel
     private final List<Line>   routeLines  = new ArrayList<>();
     private final List<Circle> packetIcons = new ArrayList<>();
 
-    // route & remove mode
+    // Route selection and removal control flags
     private Node src, dst;
     private boolean routeMode = false;
     private boolean removeMode = false;
     private Node lastSrc, lastDst;
 
-    // helpers
+    // Helper list for selecting nodes for edge creation
     private final List<Node> edgeCandidates = new ArrayList<>();
 
-    // ── init ────────────────────────────────────────────────────────────────
+    // Setup method automatically called after FXML loads
     @FXML private void initialize() {
-        setupTable();
+        setupTable(); // prepare log table
 
+        // When user clicks "Add Node"
         addNodeBtn.setOnAction(e -> {
             graphPane.setCursor(javafx.scene.Cursor.CROSSHAIR);
             log("UI","Info","Click canvas to place node");
         });
 
+        // When user clicks "Select Route"
         selectRouteBtn.setOnAction(e -> {
             routeMode = true;  removeMode = false;
             src = dst = null;
             log("UI","Info","Click Source then Destination");
         });
 
+        // When user clicks "Remove Node"
         removeNodeBtn.setOnAction(e -> {
             removeMode = true; routeMode = false;
             graphPane.setCursor(javafx.scene.Cursor.CROSSHAIR);
             log("UI","Remove","Click a node to delete it");
         });
 
+        // "Run" and "Clear Path" buttons
         runBtn.setOnAction(e -> rerunLastRoute());
         clearPathBtn.setOnAction(e -> clearRoute());
 
+        // Handle canvas clicks for adding or removing nodes
         graphPane.setOnMouseClicked(e -> {
             if (graphPane.getCursor() == javafx.scene.Cursor.CROSSHAIR &&
                 e.getButton() == MouseButton.PRIMARY &&
@@ -96,20 +102,21 @@ public class MainController {
             }
         });
 
+        // Allow node/edge deletion via Delete key
         graphPane.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.DELETE) deleteSelection();
         });
-        graphPane.setFocusTraversable(true);
+        graphPane.setFocusTraversable(true); // Ensure key events are captured
     }
 
-    // ── node creation ───────────────────────────────────────────────────────────
+    // Create a new node visually and in the graph model
     private void createNode(double x, double y) {
         String id = "N" + (++nodeCounter);
         Node n = graph.addNode(id, x, y);
 
         Circle circle = new Circle(14, Color.web("#4fc3f7"));
         circle.setStroke(Color.WHITE);
-        Label  label  = new Label(id);
+        Label label = new Label(id);
         label.setTextFill(Color.WHITE);
         label.setStyle("-fx-font-size:10;");
 
@@ -123,10 +130,11 @@ public class MainController {
     }
 
     private Node selectedNode = null;
+
+    // Handle what happens when a node is clicked
     private void nodeClicked(MouseButton btn, Node n) {
         selectedNode = n;
 
-        // Remove-node mode
         if (removeMode) {
             deleteWholeNode(n);
             removeMode = false;
@@ -134,24 +142,22 @@ public class MainController {
             return;
         }
 
-        // Route-selection mode
         if (routeMode) {
             if (src == null)      { src = n; log("UI","Route","Source = "+n.getId()); }
-            else if (dst == null) { dst = n; log("UI","Route","Dest   = "+n.getId());
-                                    simulateAODV(src,dst); routeMode=false; }
+            else if (dst == null) { dst = n; log("UI","Route","Dest   = "+n.getId()); simulateAODV(src,dst); routeMode=false; }
             return;
         }
 
-        // Edge creation (normal mode)
+        // Edge creation flow
         edgeCandidates.add(n);
-        if (edgeCandidates.size()==2) {
+        if (edgeCandidates.size() == 2) {
             Node a = edgeCandidates.get(0), b = edgeCandidates.get(1);
             if (!a.equals(b)) promptWeightAndCreateEdge(a,b);
             edgeCandidates.clear();
         }
     }
 
-    // ── edge creation ───────────────────────────────────────────────────────────
+    // Ask user for weight and then create the edge
     private void promptWeightAndCreateEdge(Node a, Node b) {
         TextInputDialog d = new TextInputDialog("1.0");
         d.setHeaderText("Weight "+a.getId()+" ↔ "+b.getId());
@@ -166,6 +172,7 @@ public class MainController {
         });
     }
 
+    // Draw or update an edge line and label
     private void drawOrUpdateEdge(Node a, Node b, double w){
         Set<Node> key = Set.of(a,b);
         if(edgeLabelMap.containsKey(key)){
@@ -173,23 +180,20 @@ public class MainController {
             return;
         }
         Line line = new Line(a.getX(),a.getY(),b.getX(),b.getY());
-        line.setStroke(Color.WHITE);
-        line.setStrokeWidth(2);
+        line.setStroke(Color.WHITE); line.setStrokeWidth(2);
         line.setOnMouseClicked(ev -> { if(ev.getButton()==MouseButton.PRIMARY) selectEdge(line,a,b); });
         graphPane.getChildren().add(0,line);
 
         Label lbl = new Label(String.valueOf(w));
-        lbl.setTextFill(Color.YELLOW);
-        lbl.setStyle("-fx-font-size:10;");
-        lbl.setLayoutX((a.getX()+b.getX())/2);
-        lbl.setLayoutY((a.getY()+b.getY())/2);
+        lbl.setTextFill(Color.YELLOW); lbl.setStyle("-fx-font-size:10;");
+        lbl.setLayoutX((a.getX()+b.getX())/2); lbl.setLayoutY((a.getY()+b.getY())/2);
         graphPane.getChildren().add(lbl);
 
         edgeLineMap.put(key, line);
         edgeLabelMap.put(key, lbl);
     }
 
-    // ── AODV simulation ─────────────────────────────────────────────────────────
+    // Start AODV simulation based on selected metric
     private void simulateAODV(Node source, Node dest){
         clearRoute();
         log("Sim","Start","AODV "+source.getId()+"→"+dest.getId());
@@ -205,23 +209,20 @@ public class MainController {
         animateRoute(path);
     }
 
+    // Draw green animated route and red packet
     private void animateRoute(List<Node> path){
         for(int i=0;i<path.size()-1;i++){
             Node a=path.get(i), b=path.get(i+1);
             Line l=new Line(a.getX(),a.getY(),b.getX(),b.getY());
-            l.setStroke(Color.web("#00e676"));
-            l.setStrokeWidth(3);
-            l.getStrokeDashArray().addAll(6d,4d);
-            graphPane.getChildren().add(l);
-            routeLines.add(l);
+            l.setStroke(Color.web("#00e676")); l.setStrokeWidth(3); l.getStrokeDashArray().addAll(6d,4d);
+            graphPane.getChildren().add(l); routeLines.add(l);
         }
 
         Polyline routePoly = new Polyline();
         for(Node n : path) routePoly.getPoints().addAll(n.getX(), n.getY());
 
         Circle pkt = new Circle(6, Color.RED);
-        graphPane.getChildren().add(pkt);
-        packetIcons.add(pkt);
+        graphPane.getChildren().add(pkt); packetIcons.add(pkt);
 
         PathTransition pt = new PathTransition(Duration.seconds(1.2*path.size()), routePoly, pkt);
         pt.setOnFinished(e -> log("Sim","Done","Reached "+path.get(path.size()-1).getId()));
@@ -230,7 +231,7 @@ public class MainController {
         log("Sim","Path", String.join(" → ", path.stream().map(Node::getId).toList()));
     }
 
-    // ── Clear / rerun helpers ───────────────────────────────────────────────────
+    // Helpers to clear visuals
     private void clearRoute(){
         routeLines.forEach(graphPane.getChildren()::remove);
         packetIcons.forEach(graphPane.getChildren()::remove);
@@ -241,7 +242,7 @@ public class MainController {
         else log("UI","Info","No previous src/dst. Use Select Route first.");
     }
 
-    // ── deletion helpers ───────────────────────────────────────────────────────
+    // Deletion logic
     private Line selectedEdge=null; private Node edgeA,edgeB;
     private void selectEdge(Line l, Node a, Node b){ selectedEdge=l; edgeA=a; edgeB=b; }
 
@@ -258,25 +259,17 @@ public class MainController {
     }
 
     private void deleteWholeNode(Node n){
-        // remove node visual
         graphPane.getChildren().remove(nodeVisual.remove(n));
-
-        // remove incident edges (lines + labels)
-        edgeLineMap.keySet().stream()
-                .filter(pair -> pair.contains(n))
-                .toList()
-                .forEach(pair -> {
-                    graphPane.getChildren().remove(edgeLineMap.remove(pair));
-                    graphPane.getChildren().remove(edgeLabelMap.remove(pair));
-                });
-
-        // remove from model
+        edgeLineMap.keySet().stream().filter(pair -> pair.contains(n)).toList().forEach(pair -> {
+            graphPane.getChildren().remove(edgeLineMap.remove(pair));
+            graphPane.getChildren().remove(edgeLabelMap.remove(pair));
+        });
         graph.removeNode(n);
         log("Graph","Del","Node "+n.getId()+" and its edges removed");
         selectedNode = null;
     }
 
-    // ── log helper ─────────────────────────────────────────────────────────────
+    // Log handling
     private final ObservableList<LogEntry> logs = FXCollections.observableArrayList();
     private void setupTable(){
         timeCol.setCellValueFactory(d -> d.getValue().time);
